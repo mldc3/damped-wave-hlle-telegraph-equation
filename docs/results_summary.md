@@ -11,7 +11,7 @@ Available results are provided as method and boundary-condition animations.
 ## Crank–Nicolson figures (`figures/crank_nicolson/`)
 ![Crank–Nicolson method](../figures/crank_nicolson/crank_nicolson_method.gif)
 
-## HLL/HLLE figures (`figures/hll/`)
+## HLL/HLLE figures (`figures/hll/`, consolidated under `hll`)
 ![HLL flux method](../figures/hll/hll_flux_method.gif)
 
 ## Boundary comparisons (`figures/boundary_conditions/`)

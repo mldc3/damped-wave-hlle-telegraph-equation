@@ -1,17 +1,7 @@
 # Sources and Notes
 
-This repository is based on **Practice 6** from computational physics / modelling coursework in the Physics degree at the **University of Alicante**.
+- Main implementation source: `src/damped_wave_telegraph_methods.py`.
+- Original report archive location: `notes/original_report/`.
+- Numerical content is restricted to Practice 6 methods and uploaded outputs only.
 
-The technical scope includes:
-
-- the damped one-dimensional wave / telegraph equation,
-- finite-difference spatial and temporal discretization,
-- CFL stability considerations for explicit schemes,
-- reformulation into first-order systems,
-- matrix exponential time evolution,
-- Crank–Nicolson implicit time integration,
-- conservative formulations with auxiliary variables,
-- HLL/HLLE approximate Riemann solvers,
-- Dirichlet and Neumann boundary-condition analysis.
-
-This repository is a cleaned portfolio version of the project. Documentation has been rebuilt for clarity, while the numerical logic of the original code has been preserved.
+No additional figures, synthetic results, or rewritten report content are introduced in this cleaned structure.

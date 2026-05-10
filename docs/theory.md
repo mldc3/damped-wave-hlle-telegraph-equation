@@ -513,3 +513,188 @@ This distinction is central in this project. The physical equation already conta
 The explicit method is the clearest example. It may remain stable, but it can still introduce numerical dissipation. This means the amplitude may decay faster than in a more accurate reference method such as the matrix exponential.
 
 The comparison between methods is therefore not just about whether the animations look reasonable. It is about understanding how each algorithm modifies the physical behaviour of the equation.
+
+---
+
+## 8. Reformulation as a first-order system
+
+The original equation is second order in time. Many numerical methods are easier to formulate for first-order systems. To obtain such a system, introduce the auxiliary variable
+
+$$
+v=\frac{\partial u}{\partial t}.
+$$
+
+Then the damped wave equation becomes
+
+$$
+\frac{\partial u}{\partial t}=v,
+$$
+
+$$
+\frac{\partial v}{\partial t}
+=
+c^2
+\frac{\partial^2 u}{\partial x^2}
+-
+2\frac{\kappa}{\rho}v
++
+a u.
+$$
+
+The variable $u$ is the displacement-like variable, and $v$ is the velocity-like variable. This reformulation separates the kinematics from the dynamics: the first equation says that velocity is the time derivative of displacement, while the second equation determines how velocity changes.
+
+After spatial discretization, the unknowns can be collected into a state vector,
+
+$$
+\mathbf{W}
+=
+\begin{pmatrix}
+u_0\\
+u_1\\
+\vdots\\
+u_{N-1}\\
+v_0\\
+v_1\\
+\vdots\\
+v_{N-1}
+\end{pmatrix}.
+$$
+
+The semi-discrete system can then be written as
+
+$$
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W}.
+$$
+
+The matrix $\mathbf{A}$ has a block structure,
+
+$$
+\mathbf{A}
+=
+\begin{pmatrix}
+\mathbf{0} & \mathbf{I}\\
+c^2\mathbf{L}+a\mathbf{I} & -2(\kappa/\rho)\mathbf{I}
+\end{pmatrix}.
+$$
+
+Here $\mathbf{L}$ is the discrete Laplacian matrix. The upper-right identity block represents $u_t=v$. The lower-left block contains the spatial wave operator and the linear $a u$ contribution. The lower-right block contains the damping term.
+
+This matrix formulation is powerful because it turns the PDE into a system of ordinary differential equations in time.
+
+---
+
+## 9. Matrix exponential method
+
+For the linear system
+
+$$
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W},
+$$
+
+with constant matrix $\mathbf{A}$, the exact solution over one time step is
+
+$$
+\mathbf{W}^{n+1}
+=
+e^{\mathbf{A}\Delta t}
+\mathbf{W}^{n}.
+$$
+
+The matrix exponential method computes
+
+$$
+\mathbf{M}=e^{\mathbf{A}\Delta t},
+$$
+
+and then advances the solution by
+
+$$
+\mathbf{W}^{n+1}
+=
+\mathbf{M}\mathbf{W}^{n}.
+$$
+
+This method is conceptually very clean. Once space has been discretized, the time evolution of the resulting linear system is treated exactly. Therefore, the matrix exponential is an excellent reference for the semi-discrete problem.
+
+Its limitation is computational cost. Computing a matrix exponential can be expensive for large systems. For a moderate one-dimensional practice it is very useful, but for larger multidimensional simulations it may become impractical.
+
+In this repository, the matrix exponential method should be interpreted as a high-fidelity benchmark. If another method shows much stronger damping or phase shift, comparison with the matrix exponential helps identify that difference as numerical.
+
+---
+
+## 10. Crank--Nicolson method
+
+Crank--Nicolson is a semi-implicit second-order method. Applied to the first-order system,
+
+$$
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W},
+$$
+
+it approximates the derivative by a centred difference and averages the right-hand side between time levels $n$ and $n+1$:
+
+$$
+\frac{\mathbf{W}^{n+1}-\mathbf{W}^{n}}{\Delta t}
+=
+\frac{1}{2}
+\mathbf{A}
+\left(
+\mathbf{W}^{n+1}
++
+\mathbf{W}^{n}
+\right).
+$$
+
+Rearranging gives
+
+$$
+\left(
+\mathbf{I}
+-
+\frac{\Delta t}{2}\mathbf{A}
+\right)
+\mathbf{W}^{n+1}
+=
+\left(
+\mathbf{I}
++
+\frac{\Delta t}{2}\mathbf{A}
+\right)
+\mathbf{W}^{n}.
+$$
+
+Thus each time step requires solving a linear system. This is more expensive than an explicit update, but it is usually much more stable and accurate.
+
+Crank--Nicolson can also be understood as a rational approximation to the matrix exponential:
+
+$$
+e^{\mathbf{A}\Delta t}
+\approx
+\left(
+\mathbf{I}
+-
+\frac{\Delta t}{2}\mathbf{A}
+\right)^{-1}
+\left(
+\mathbf{I}
++
+\frac{\Delta t}{2}\mathbf{A}
+\right).
+$$
+
+This explains why Crank--Nicolson should often look close to the matrix exponential method. It is not exact in time, but it captures the structure of the linear evolution much better than a simple explicit method.
+
+---
+
+## 11. Practical meaning of Crank--Nicolson
+
+Crank--Nicolson is a compromise between the explicit method and the matrix exponential method.
+
+The explicit method is cheap but conditionally stable and potentially dissipative. The matrix exponential is accurate for the semi-discrete system but expensive. Crank--Nicolson lies between them: it is stable, second order in time and practical for repeated time stepping.
+
+For the damped wave problem, Crank--Nicolson should reproduce the physical damping without adding excessive artificial damping. Therefore, agreement between Crank--Nicolson and the matrix exponential animation is a strong validation of the implementation.

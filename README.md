@@ -12,10 +12,10 @@ The project includes:
 - method comparison through animations.
 
 ## Repository structure
-- `src/` - Python implementation of the numerical methods.
+- `src/` - Uploaded Python source file for the project portfolio.
 - `docs/` - Theory, numerical-method notes, result summaries, and source notes.
 - `figures/` - Animations organized by method and boundary-condition comparisons.
-- `notes/original_report/` - Original report archive.
+- `notes/original_report/` - Original report archive location.
 
 ## Animations
 ### Explicit finite difference

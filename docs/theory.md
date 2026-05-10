@@ -366,3 +366,150 @@ The integer $n$ is the mode number. Low values of $n$ correspond to long wavelen
 This is important when comparing methods. A method may perform well for a smooth low mode but introduce stronger damping or phase error for high-frequency components.
 
 <!-- THEORY PART 1 END -->
+
+---
+
+## 4. Boundary conditions
+
+Boundary conditions are part of the physical model. They are not simply a technical coding detail. They determine which solutions are allowed and how waves interact with the endpoints of the domain.
+
+For Dirichlet boundary conditions, the value of the field is fixed at the boundaries:
+
+$$
+u(0,t)=0,
+\qquad
+u(L,t)=0.
+$$
+
+Physically, this resembles a string fixed at both ends. The endpoints cannot move. A wave reaching the boundary reflects according to this fixed-end constraint.
+
+For Neumann boundary conditions, the spatial derivative is prescribed. A homogeneous Neumann boundary condition has the form
+
+$$
+\frac{\partial u}{\partial x}=0
+$$
+
+at the boundary. This represents a zero-gradient or free-end condition. The endpoint is not forced to have zero displacement; instead, the slope is constrained.
+
+The difference between Dirichlet and Neumann conditions is physically visible. They lead to different allowed modes and different reflection behaviour. Therefore, the comparison of Dirichlet and Neumann animations is not merely a numerical test. It is also a comparison between two different physical boundary models.
+
+---
+
+## 5. Discrete grid
+
+To solve the equation numerically, the continuous domain is replaced by a finite grid. Let
+
+$$
+x_j=x_{\min}+j\Delta x,
+\qquad
+j=0,1,\ldots,N-1,
+$$
+
+and
+
+$$
+t^n=n\Delta t.
+$$
+
+The numerical solution is denoted by
+
+$$
+u_j^n \approx u(x_j,t^n).
+$$
+
+The goal of a finite-difference method is to replace derivatives by algebraic combinations of nearby grid values. This transforms the partial differential equation into a recurrence relation or a matrix system.
+
+The second derivative in time is approximated by
+
+$$
+\frac{\partial^2 u}{\partial t^2}
+\approx
+\frac{u_j^{n+1}-2u_j^n+u_j^{n-1}}{\Delta t^2}.
+$$
+
+The second derivative in space is approximated by
+
+$$
+\frac{\partial^2 u}{\partial x^2}
+\approx
+\frac{u_{j+1}^{n}-2u_j^n+u_{j-1}^{n}}{\Delta x^2}.
+$$
+
+The damping term can be approximated using a centred time difference:
+
+$$
+\frac{\partial u}{\partial t}
+\approx
+\frac{u_j^{n+1}-u_j^{n-1}}{2\Delta t}.
+$$
+
+These approximations are natural because they are centred and second-order accurate in the variables they approximate. They also make clear why the method uses neighbouring spatial points and two previous time levels.
+
+---
+
+## 6. Explicit finite-difference update
+
+Substituting the finite differences into the damped wave equation gives a direct update for $u_j^{n+1}$. Define
+
+$$
+k=\frac{\kappa}{\rho},
+$$
+
+and
+
+$$
+r=\left(\frac{c\Delta t}{\Delta x}\right)^2.
+$$
+
+A representative explicit update has the form
+
+$$
+u_j^{n+1}
+=
+\frac{
+(2-k\Delta t+a\Delta t^2)u_j^n
+-
+(1-k\Delta t)u_j^{n-1}
++
+r
+\left(
+u_{j+1}^{n}
+-
+2u_j^{n}
++
+u_{j-1}^{n}
+\right)
+}{
+1+k\Delta t
+}.
+$$
+
+The precise arrangement of signs depends on the convention used to move terms from one side of the equation to the other, but the structure is the same: the future value is computed from known values at the current and previous time levels.
+
+This explicit scheme is attractive because it is simple and cheap. No linear system has to be solved. Each time step is obtained by applying a local stencil.
+
+However, explicit wave schemes are conditionally stable. The time step must be small enough relative to the spatial step. The relevant quantity is the Courant number,
+
+$$
+\frac{c\Delta t}{\Delta x}.
+$$
+
+For the standard centred wave scheme, the stability condition is essentially
+
+$$
+\frac{c\Delta t}{\Delta x}\leq 1.
+$$
+
+This is the CFL condition. Its physical meaning is that information cannot be allowed to move across more grid cells in one time step than the numerical stencil can represent. If the time step is too large, the scheme may become unstable.
+
+---
+
+## 7. Stability is not accuracy
+
+Satisfying the CFL condition prevents catastrophic instability, but it does not guarantee that the result is accurate. A stable method may still have phase error, amplitude error or artificial damping.
+
+This distinction is central in this project. The physical equation already contains damping. Therefore, if a numerical method damps the wave too strongly, one must ask whether the damping is physical or artificial.
+
+The explicit method is the clearest example. It may remain stable, but it can still introduce numerical dissipation. This means the amplitude may decay faster than in a more accurate reference method such as the matrix exponential.
+
+The comparison between methods is therefore not just about whether the animations look reasonable. It is about understanding how each algorithm modifies the physical behaviour of the equation.

@@ -3,7 +3,7 @@
 Available results are provided as method and boundary-condition animations:
 
 ## Explicit method figures (`../figures/explicit/`)
-![Explicit finite difference](../figures/explicit/explicit_finite_difference.gif)
+![Explicit method](../figures/explicit/explicit_finite_difference.gif)
 
 ## Matrix exponential figures (`../figures/matrix_exponential/`)
 ![Matrix exponential method](../figures/matrix_exponential/matrix_exponential_method.gif)

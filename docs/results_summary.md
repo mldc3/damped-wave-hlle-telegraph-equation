@@ -39,7 +39,7 @@ Therefore, the animations should be read as a method comparison. The question is
 
 ## 2. Explicit finite-difference method
 
-<img>
+<img src="../figures/explicit/explicit_finite_difference.gif" alt="Explicit finite-difference method">
 
 The explicit finite-difference method is the most direct numerical scheme in the repository. It comes from replacing the derivatives in the PDE by finite differences and solving algebraically for the next time level.
 
@@ -66,7 +66,7 @@ This condition is required for stability, but it does not guarantee high accurac
 
 ## 3. Matrix exponential method
 
-<img>
+<img src="../figures/matrix_exponential/matrix_exponential_method.gif" alt="Matrix exponential method">
 
 The matrix exponential method first rewrites the PDE as a first-order system,
 
@@ -97,7 +97,7 @@ Its limitation is computational cost. Computing a matrix exponential can be expe
 
 ## 4. Crank--Nicolson method
 
-<img>
+<img src="../figures/crank_nicolson/crank_nicolson_method.gif" alt="Crank–Nicolson method">
 
 The Crank--Nicolson method also uses the first-order matrix formulation, but instead of computing the exact matrix exponential, it uses the semi-implicit update
 
@@ -129,7 +129,7 @@ The result demonstrates why implicit or semi-implicit schemes are widely used in
 
 ## 5. HLL/HLLE flux method
 
-<img>
+<img src="../figures/hll/hll_flux_method.gif" alt="HLL/HLLE flux method">
 
 The HLL/HLLE method represents a different numerical philosophy. It does not simply discretize the second-order equation directly. Instead, the problem is written in a conservative hyperbolic form,
 
@@ -170,7 +170,7 @@ For smooth linear waves, this can make HLL look less sharp. For more difficult h
 
 ## 6. Dirichlet boundary-condition comparison
 
-<img>
+<img src="../figures/boundary_conditions/dirichlet_method_comparison.gif" alt="Dirichlet method comparison">
 
 The Dirichlet comparison places the methods under fixed-end boundary conditions,
 
@@ -192,7 +192,7 @@ This animation summarizes the central lesson of the project: even for the same e
 
 ## 7. Neumann boundary-condition comparison
 
-<img>
+<img src="../figures/boundary_conditions/neumann_method_comparison.gif" alt="Neumann method comparison">
 
 The Neumann comparison uses derivative boundary conditions, typically of the form
 

@@ -698,3 +698,174 @@ Crank--Nicolson is a compromise between the explicit method and the matrix expon
 The explicit method is cheap but conditionally stable and potentially dissipative. The matrix exponential is accurate for the semi-discrete system but expensive. Crank--Nicolson lies between them: it is stable, second order in time and practical for repeated time stepping.
 
 For the damped wave problem, Crank--Nicolson should reproduce the physical damping without adding excessive artificial damping. Therefore, agreement between Crank--Nicolson and the matrix exponential animation is a strong validation of the implementation.
+
+---
+
+## 12. Conservative formulation
+
+Hyperbolic problems are often written in conservative form,
+
+$$
+\frac{\partial \mathbf{U}}{\partial t}
++
+\frac{\partial \mathbf{F}(\mathbf{U})}{\partial x}
+=
+\mathbf{S}(\mathbf{U}).
+$$
+
+This form emphasizes fluxes through cell interfaces. Instead of only approximating derivatives at grid points, a finite-volume method tracks how much information enters and leaves each cell.
+
+To write the wave equation in a form suitable for flux methods, introduce
+
+$$
+w=\frac{\partial u}{\partial x}.
+$$
+
+A state vector can then be defined as
+
+$$
+\mathbf{U}
+=
+\begin{pmatrix}
+u\\
+v\\
+w
+\end{pmatrix},
+$$
+
+where $v=u_t$ and $w=u_x$.
+
+A representative flux for the wave part is
+
+$$
+\mathbf{F}(\mathbf{U})
+=
+\begin{pmatrix}
+0\\
+-c^2 w\\
+-v
+\end{pmatrix}.
+$$
+
+The remaining damping and reaction terms are treated as sources. This formulation allows the use of numerical fluxes and approximate Riemann solvers.
+
+---
+
+## 13. Characteristic speeds
+
+The Jacobian of the flux is
+
+$$
+\mathbf{J}
+=
+\frac{\partial \mathbf{F}}{\partial \mathbf{U}}.
+$$
+
+For the wave system, the characteristic speeds are
+
+$$
+\lambda_1=0,
+\qquad
+\lambda_2=c,
+\qquad
+\lambda_3=-c.
+$$
+
+These speeds describe how information propagates. Two modes travel left and right with speeds $\pm c$, while one mode is stationary in this variable representation.
+
+This characteristic structure is the basis of upwind methods. A good flux method should respect the fact that information enters an interface from specific directions.
+
+---
+
+## 14. HLL/HLLE approximate Riemann solver
+
+At each cell interface, a finite-volume method sees a left state and a right state:
+
+$$
+\mathbf{U}_L,
+\qquad
+\mathbf{U}_R.
+$$
+
+The exact solution of the resulting Riemann problem may involve several waves. The HLL/HLLE solver replaces the full wave structure by a simpler model using only the fastest left-going and right-going signal speeds.
+
+Let
+
+$$
+S_L=-c,
+\qquad
+S_R=c.
+$$
+
+The HLL flux is
+
+$$
+\mathbf{F}_{HLL}
+=
+\frac{
+S_R\mathbf{F}_L
+-
+S_L\mathbf{F}_R
++
+S_LS_R
+(\mathbf{U}_R-\mathbf{U}_L)
+}{
+S_R-S_L
+}.
+$$
+
+If all waves move to the right, the flux should be determined by the left state. If all waves move to the left, the flux should be determined by the right state. If waves move in both directions, the HLL formula constructs an intermediate flux.
+
+The stabilizing term
+
+$$
+S_LS_R(\mathbf{U}_R-\mathbf{U}_L)
+$$
+
+introduces numerical viscosity. This is a key feature of the method.
+
+---
+
+## 15. Numerical viscosity
+
+Numerical viscosity is artificial smoothing introduced by a numerical method. It is not the same as physical damping. Physical damping is present in the PDE. Numerical viscosity is present because of the flux approximation.
+
+In HLL/HLLE, numerical viscosity is useful because it suppresses spurious oscillations and makes the method robust for hyperbolic systems. This is especially important in nonlinear conservation laws, where discontinuities or shocks may form.
+
+However, in a smooth linear damped wave problem, the same viscosity may make the solution look more diffusive. The HLL animation may show a smoother wave and stronger amplitude decay than the matrix exponential or Crank--Nicolson animations.
+
+This is expected. HLL/HLLE is not necessarily the least dissipative method for a smooth standing wave. Its strength is robustness and conservative structure.
+
+---
+
+## 16. Comparison of the four methods
+
+The explicit finite-difference method is direct, transparent and cheap. It is the easiest method to connect to the original PDE. Its main limitations are conditional stability and possible artificial damping.
+
+The matrix exponential method is the most faithful time integrator for the spatially discretized linear system. It is an excellent reference, but it may be computationally expensive.
+
+Crank--Nicolson is a practical compromise. It approximates the matrix exponential well, is second order in time and is usually much less dissipative than a simple explicit method.
+
+HLL/HLLE is a conservative flux method. It is designed for hyperbolic systems and approximate Riemann problems. It introduces numerical viscosity, which makes it robust but can make smooth waves appear more damped.
+
+The value of the project is that these methods are compared on the same physical problem. This makes it possible to see how numerical choices affect the observed solution.
+
+---
+
+## 17. Summary
+
+This practice connects several important ideas in computational physics:
+
+- damped hyperbolic wave equations,
+- physical damping versus numerical damping,
+- finite-difference discretization,
+- CFL stability,
+- first-order system reformulation,
+- matrix exponential propagation,
+- Crank--Nicolson integration,
+- conservative finite-volume methods,
+- HLL/HLLE fluxes,
+- characteristic speeds,
+- Dirichlet and Neumann boundary conditions.
+
+The central lesson is that numerical methods are not neutral. They introduce their own stability properties, damping behaviour and computational cost. Understanding these effects is as important as writing code that runs.

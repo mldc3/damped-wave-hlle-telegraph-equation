@@ -266,3 +266,103 @@ The damped telegraph equation is a wave system with memory, inertia, and dissipa
 - conservative interface-flux transport.
 
 A rigorous interpretation of results must always separate what belongs to the physics of the PDE from what belongs to the numerics of approximation. This distinction is the central theoretical lesson of the project and the reason method comparison is essential in computational physics.
+
+<!-- THEORY PART 0 END -->
+
+---
+
+## 1. Physical motivation
+
+The starting point of the project is the damped one-dimensional wave equation
+
+$$
+\frac{\partial^2 u}{\partial t^2}
+-
+c^2
+\frac{\partial^2 u}{\partial x^2}
+=
+-2\frac{\kappa}{\rho}
+\frac{\partial u}{\partial t}
++
+a u.
+$$
+
+The unknown field is $u(x,t)$. It may be interpreted as a displacement-like quantity evolving along a one-dimensional domain. The parameter $c$ is the wave speed, so it controls how fast disturbances propagate. The ratio $\kappa/\rho$ controls physical damping, and the coefficient $a$ introduces a linear restoring or reaction term proportional to the field itself.
+
+The left-hand side is the standard wave operator. If the right-hand side were zero, the equation would reduce to the ideal wave equation,
+
+$$
+\frac{\partial^2 u}{\partial t^2}
+-
+c^2
+\frac{\partial^2 u}{\partial x^2}
+=
+0.
+$$
+
+This equation describes waves travelling with finite speed. A disturbance introduced at one point does not instantly affect the whole domain. Instead, information propagates along characteristic directions associated with speeds $+c$ and $-c$.
+
+The right-hand side modifies the ideal wave equation in two ways. The term
+
+$$
+-2\frac{\kappa}{\rho}
+\frac{\partial u}{\partial t}
+$$
+
+is a damping term. It acts against motion and removes energy from the wave. As a result, even if the initial condition is a clean sinusoidal mode, the amplitude should decay with time. This decay is physical because it is explicitly included in the differential equation.
+
+The term
+
+$$
+a u
+$$
+
+is a linear contribution proportional to the field. Depending on the sign of $a$, it may act like an additional restoring term or like a source of growth. In the practice, the representative value is negative, so it contributes to bounded oscillatory behaviour rather than uncontrolled exponential growth.
+
+This equation is useful because it contains several ingredients that are central in computational physics: wave propagation, damping, boundary conditions, stability restrictions, matrix formulations, implicit integration and conservative flux methods.
+
+---
+
+## 2. Why this is a hyperbolic problem
+
+The ideal wave equation is a hyperbolic partial differential equation. Hyperbolic problems are characterized by finite-speed propagation and characteristic directions. This makes them very different from parabolic equations such as the heat equation.
+
+For the heat equation, a perturbation spreads diffusively and smooths out. For a wave equation, a perturbation travels. This means that numerical methods must respect the direction and speed at which information propagates.
+
+The damped telegraph equation keeps the hyperbolic character of the wave equation but adds decay. The wave still propagates through the domain, but its amplitude is reduced by physical damping. A good numerical method should reproduce both aspects: propagation and damping.
+
+This is why it is important to separate physical damping from numerical damping. Physical damping comes from the equation itself. Numerical damping comes from the method used to approximate the equation. A method can be stable and still too dissipative if it damps the wave more strongly than the physical equation requires.
+
+---
+
+## 3. Initial conditions
+
+Because the equation is second order in time, one initial condition is not enough. The future evolution is determined by both the initial field and the initial velocity:
+
+$$
+u(x,0)=u_0(x),
+$$
+
+$$
+\frac{\partial u}{\partial t}(x,0)=v_0(x).
+$$
+
+This is analogous to classical mechanics. To determine the motion of a particle governed by a second-order equation, one must specify both position and velocity. Similarly, for a second-order wave equation, one must specify both the initial shape and the initial rate of change.
+
+A common initial condition in this practice is a sinusoidal mode,
+
+$$
+u(x,0)=\sin\left(\frac{n\pi x}{L}\right),
+$$
+
+with zero initial velocity,
+
+$$
+\frac{\partial u}{\partial t}(x,0)=0.
+$$
+
+The integer $n$ is the mode number. Low values of $n$ correspond to long wavelengths and smooth spatial profiles. Higher values of $n$ correspond to shorter wavelengths and more oscillations over the same domain. High modes are harder to resolve numerically because they require a finer spatial grid.
+
+This is important when comparing methods. A method may perform well for a smooth low mode but introduce stronger damping or phase error for high-frequency components.
+
+<!-- THEORY PART 1 END -->

@@ -30,11 +30,9 @@ If $\kappa=0$ and $a=0$, the ideal wave equation is recovered. If damping is pre
 For
 
 $$
-\frac{\partial^2 u}{\partial t^2}
--
+\frac{\partial^2 u}{\partial t^2} -
 c^2
-\frac{\partial^2 u}{\partial x^2}
-=
+\frac{\partial^2 u}{\partial x^2} =
 -2\frac{\kappa}{\rho}
 \frac{\partial u}{\partial t}
 +
@@ -196,8 +194,7 @@ Its drawback is cost and dense linear-algebra overhead as system size grows.
 Crank–Nicolson applied to $d\mathbf{W}/dt=\mathbf{A}\mathbf{W}$ yields
 
 $$
-\left(\mathbf{I}-\frac{\Delta t}{2}\mathbf{A}\right)\mathbf{W}^{n+1}
-=
+\left(\mathbf{I}-\frac{\Delta t}{2}\mathbf{A}\right)\mathbf{W}^{n+1} =
 \left(\mathbf{I}+\frac{\Delta t}{2}\mathbf{A}\right)\mathbf{W}^{n}.
 $$
 

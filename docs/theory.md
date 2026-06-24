@@ -263,3 +263,606 @@ The damped telegraph equation is a wave system with memory, inertia, and dissipa
 - conservative interface-flux transport.
 
 A rigorous interpretation of results must always separate what belongs to the physics of the PDE from what belongs to the numerics of approximation. This distinction is the central theoretical lesson of the project and the reason method comparison is essential in computational physics.
+
+<!-- THEORY PART 0 END -->
+
+---
+
+## 1. Physical motivation
+
+The starting point of the project is the damped one-dimensional wave equation
+
+$$
+\frac{\partial^2 u}{\partial t^2}
+-
+c^2
+\frac{\partial^2 u}{\partial x^2}
+=
+-2\frac{\kappa}{\rho}
+\frac{\partial u}{\partial t}
++
+a u.
+$$
+
+The unknown field is $u(x,t)$. It may be interpreted as a displacement-like quantity evolving along a one-dimensional domain. The parameter $c$ is the wave speed, so it controls how fast disturbances propagate. The ratio $\kappa/\rho$ controls physical damping, and the coefficient $a$ introduces a linear restoring or reaction term proportional to the field itself.
+
+The left-hand side is the standard wave operator. If the right-hand side were zero, the equation would reduce to the ideal wave equation,
+
+$$
+\frac{\partial^2 u}{\partial t^2}
+-
+c^2
+\frac{\partial^2 u}{\partial x^2}
+=
+0.
+$$
+
+This equation describes waves travelling with finite speed. A disturbance introduced at one point does not instantly affect the whole domain. Instead, information propagates along characteristic directions associated with speeds $+c$ and $-c$.
+
+The right-hand side modifies the ideal wave equation in two ways. The term
+
+$$
+-2\frac{\kappa}{\rho}
+\frac{\partial u}{\partial t}
+$$
+
+is a damping term. It acts against motion and removes energy from the wave. As a result, even if the initial condition is a clean sinusoidal mode, the amplitude should decay with time. This decay is physical because it is explicitly included in the differential equation.
+
+The term
+
+$$
+a u
+$$
+
+is a linear contribution proportional to the field. Depending on the sign of $a$, it may act like an additional restoring term or like a source of growth. In the practice, the representative value is negative, so it contributes to bounded oscillatory behaviour rather than uncontrolled exponential growth.
+
+This equation is useful because it contains several ingredients that are central in computational physics: wave propagation, damping, boundary conditions, stability restrictions, matrix formulations, implicit integration and conservative flux methods.
+
+---
+
+## 2. Why this is a hyperbolic problem
+
+The ideal wave equation is a hyperbolic partial differential equation. Hyperbolic problems are characterized by finite-speed propagation and characteristic directions. This makes them very different from parabolic equations such as the heat equation.
+
+For the heat equation, a perturbation spreads diffusively and smooths out. For a wave equation, a perturbation travels. This means that numerical methods must respect the direction and speed at which information propagates.
+
+The damped telegraph equation keeps the hyperbolic character of the wave equation but adds decay. The wave still propagates through the domain, but its amplitude is reduced by physical damping. A good numerical method should reproduce both aspects: propagation and damping.
+
+This is why it is important to separate physical damping from numerical damping. Physical damping comes from the equation itself. Numerical damping comes from the method used to approximate the equation. A method can be stable and still too dissipative if it damps the wave more strongly than the physical equation requires.
+
+---
+
+## 3. Initial conditions
+
+Because the equation is second order in time, one initial condition is not enough. The future evolution is determined by both the initial field and the initial velocity:
+
+$$
+u(x,0)=u_0(x),
+$$
+
+$$
+\frac{\partial u}{\partial t}(x,0)=v_0(x).
+$$
+
+This is analogous to classical mechanics. To determine the motion of a particle governed by a second-order equation, one must specify both position and velocity. Similarly, for a second-order wave equation, one must specify both the initial shape and the initial rate of change.
+
+A common initial condition in this practice is a sinusoidal mode,
+
+$$
+u(x,0)=\sin\left(\frac{n\pi x}{L}\right),
+$$
+
+with zero initial velocity,
+
+$$
+\frac{\partial u}{\partial t}(x,0)=0.
+$$
+
+The integer $n$ is the mode number. Low values of $n$ correspond to long wavelengths and smooth spatial profiles. Higher values of $n$ correspond to shorter wavelengths and more oscillations over the same domain. High modes are harder to resolve numerically because they require a finer spatial grid.
+
+This is important when comparing methods. A method may perform well for a smooth low mode but introduce stronger damping or phase error for high-frequency components.
+
+<!-- THEORY PART 1 END -->
+
+---
+
+## 4. Boundary conditions
+
+Boundary conditions are part of the physical model. They are not simply a technical coding detail. They determine which solutions are allowed and how waves interact with the endpoints of the domain.
+
+For Dirichlet boundary conditions, the value of the field is fixed at the boundaries:
+
+$$
+u(0,t)=0,
+\qquad
+u(L,t)=0.
+$$
+
+Physically, this resembles a string fixed at both ends. The endpoints cannot move. A wave reaching the boundary reflects according to this fixed-end constraint.
+
+For Neumann boundary conditions, the spatial derivative is prescribed. A homogeneous Neumann boundary condition has the form
+
+$$
+\frac{\partial u}{\partial x}=0
+$$
+
+at the boundary. This represents a zero-gradient or free-end condition. The endpoint is not forced to have zero displacement; instead, the slope is constrained.
+
+The difference between Dirichlet and Neumann conditions is physically visible. They lead to different allowed modes and different reflection behaviour. Therefore, the comparison of Dirichlet and Neumann animations is not merely a numerical test. It is also a comparison between two different physical boundary models.
+
+---
+
+## 5. Discrete grid
+
+To solve the equation numerically, the continuous domain is replaced by a finite grid. Let
+
+$$
+x_j=x_{\min}+j\Delta x,
+\qquad
+j=0,1,\ldots,N-1,
+$$
+
+and
+
+$$
+t^n=n\Delta t.
+$$
+
+The numerical solution is denoted by
+
+$$
+u_j^n \approx u(x_j,t^n).
+$$
+
+The goal of a finite-difference method is to replace derivatives by algebraic combinations of nearby grid values. This transforms the partial differential equation into a recurrence relation or a matrix system.
+
+The second derivative in time is approximated by
+
+$$
+\frac{\partial^2 u}{\partial t^2}
+\approx
+\frac{u_j^{n+1}-2u_j^n+u_j^{n-1}}{\Delta t^2}.
+$$
+
+The second derivative in space is approximated by
+
+$$
+\frac{\partial^2 u}{\partial x^2}
+\approx
+\frac{u_{j+1}^{n}-2u_j^n+u_{j-1}^{n}}{\Delta x^2}.
+$$
+
+The damping term can be approximated using a centred time difference:
+
+$$
+\frac{\partial u}{\partial t}
+\approx
+\frac{u_j^{n+1}-u_j^{n-1}}{2\Delta t}.
+$$
+
+These approximations are natural because they are centred and second-order accurate in the variables they approximate. They also make clear why the method uses neighbouring spatial points and two previous time levels.
+
+---
+
+## 6. Explicit finite-difference update
+
+Substituting the finite differences into the damped wave equation gives a direct update for $u_j^{n+1}$. Define
+
+$$
+k=\frac{\kappa}{\rho},
+$$
+
+and
+
+$$
+r=\left(\frac{c\Delta t}{\Delta x}\right)^2.
+$$
+
+A representative explicit update has the form
+
+$$
+u_j^{n+1}
+=
+\frac{
+(2-k\Delta t+a\Delta t^2)u_j^n
+-
+(1-k\Delta t)u_j^{n-1}
++
+r
+\left(
+u_{j+1}^{n}
+-
+2u_j^{n}
++
+u_{j-1}^{n}
+\right)
+}{
+1+k\Delta t
+}.
+$$
+
+The precise arrangement of signs depends on the convention used to move terms from one side of the equation to the other, but the structure is the same: the future value is computed from known values at the current and previous time levels.
+
+This explicit scheme is attractive because it is simple and cheap. No linear system has to be solved. Each time step is obtained by applying a local stencil.
+
+However, explicit wave schemes are conditionally stable. The time step must be small enough relative to the spatial step. The relevant quantity is the Courant number,
+
+$$
+\frac{c\Delta t}{\Delta x}.
+$$
+
+For the standard centred wave scheme, the stability condition is essentially
+
+$$
+\frac{c\Delta t}{\Delta x}\leq 1.
+$$
+
+This is the CFL condition. Its physical meaning is that information cannot be allowed to move across more grid cells in one time step than the numerical stencil can represent. If the time step is too large, the scheme may become unstable.
+
+---
+
+## 7. Stability is not accuracy
+
+Satisfying the CFL condition prevents catastrophic instability, but it does not guarantee that the result is accurate. A stable method may still have phase error, amplitude error or artificial damping.
+
+This distinction is central in this project. The physical equation already contains damping. Therefore, if a numerical method damps the wave too strongly, one must ask whether the damping is physical or artificial.
+
+The explicit method is the clearest example. It may remain stable, but it can still introduce numerical dissipation. This means the amplitude may decay faster than in a more accurate reference method such as the matrix exponential.
+
+The comparison between methods is therefore not just about whether the animations look reasonable. It is about understanding how each algorithm modifies the physical behaviour of the equation.
+
+---
+
+## 8. Reformulation as a first-order system
+
+The original equation is second order in time. Many numerical methods are easier to formulate for first-order systems. To obtain such a system, introduce the auxiliary variable
+
+$$
+v=\frac{\partial u}{\partial t}.
+$$
+
+Then the damped wave equation becomes
+
+$$
+\frac{\partial u}{\partial t}=v,
+$$
+
+$$
+\frac{\partial v}{\partial t}
+=
+c^2
+\frac{\partial^2 u}{\partial x^2}
+-
+2\frac{\kappa}{\rho}v
++
+a u.
+$$
+
+The variable $u$ is the displacement-like variable, and $v$ is the velocity-like variable. This reformulation separates the kinematics from the dynamics: the first equation says that velocity is the time derivative of displacement, while the second equation determines how velocity changes.
+
+After spatial discretization, the unknowns can be collected into a state vector,
+
+$$
+\mathbf{W}
+=
+\begin{pmatrix}
+u_0\\
+u_1\\
+\vdots\\
+u_{N-1}\\
+v_0\\
+v_1\\
+\vdots\\
+v_{N-1}
+\end{pmatrix}.
+$$
+
+The semi-discrete system can then be written as
+
+$$
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W}.
+$$
+
+The matrix $\mathbf{A}$ has a block structure,
+
+$$
+\mathbf{A}
+=
+\begin{pmatrix}
+\mathbf{0} & \mathbf{I}\\
+c^2\mathbf{L}+a\mathbf{I} & -2(\kappa/\rho)\mathbf{I}
+\end{pmatrix}.
+$$
+
+Here $\mathbf{L}$ is the discrete Laplacian matrix. The upper-right identity block represents $u_t=v$. The lower-left block contains the spatial wave operator and the linear $a u$ contribution. The lower-right block contains the damping term.
+
+This matrix formulation is powerful because it turns the PDE into a system of ordinary differential equations in time.
+
+---
+
+## 9. Matrix exponential method
+
+For the linear system
+
+$$
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W},
+$$
+
+with constant matrix $\mathbf{A}$, the exact solution over one time step is
+
+$$
+\mathbf{W}^{n+1}
+=
+e^{\mathbf{A}\Delta t}
+\mathbf{W}^{n}.
+$$
+
+The matrix exponential method computes
+
+$$
+\mathbf{M}=e^{\mathbf{A}\Delta t},
+$$
+
+and then advances the solution by
+
+$$
+\mathbf{W}^{n+1}
+=
+\mathbf{M}\mathbf{W}^{n}.
+$$
+
+This method is conceptually very clean. Once space has been discretized, the time evolution of the resulting linear system is treated exactly. Therefore, the matrix exponential is an excellent reference for the semi-discrete problem.
+
+Its limitation is computational cost. Computing a matrix exponential can be expensive for large systems. For a moderate one-dimensional practice it is very useful, but for larger multidimensional simulations it may become impractical.
+
+In this repository, the matrix exponential method should be interpreted as a high-fidelity benchmark. If another method shows much stronger damping or phase shift, comparison with the matrix exponential helps identify that difference as numerical.
+
+---
+
+## 10. Crank--Nicolson method
+
+Crank--Nicolson is a semi-implicit second-order method. Applied to the first-order system,
+
+$$
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W},
+$$
+
+it approximates the derivative by a centred difference and averages the right-hand side between time levels $n$ and $n+1$:
+
+$$
+\frac{\mathbf{W}^{n+1}-\mathbf{W}^{n}}{\Delta t}
+=
+\frac{1}{2}
+\mathbf{A}
+\left(
+\mathbf{W}^{n+1}
++
+\mathbf{W}^{n}
+\right).
+$$
+
+Rearranging gives
+
+$$
+\left(
+\mathbf{I}
+-
+\frac{\Delta t}{2}\mathbf{A}
+\right)
+\mathbf{W}^{n+1}
+=
+\left(
+\mathbf{I}
++
+\frac{\Delta t}{2}\mathbf{A}
+\right)
+\mathbf{W}^{n}.
+$$
+
+Thus each time step requires solving a linear system. This is more expensive than an explicit update, but it is usually much more stable and accurate.
+
+Crank--Nicolson can also be understood as a rational approximation to the matrix exponential:
+
+$$
+e^{\mathbf{A}\Delta t}
+\approx
+\left(
+\mathbf{I}
+-
+\frac{\Delta t}{2}\mathbf{A}
+\right)^{-1}
+\left(
+\mathbf{I}
++
+\frac{\Delta t}{2}\mathbf{A}
+\right).
+$$
+
+This explains why Crank--Nicolson should often look close to the matrix exponential method. It is not exact in time, but it captures the structure of the linear evolution much better than a simple explicit method.
+
+---
+
+## 11. Practical meaning of Crank--Nicolson
+
+Crank--Nicolson is a compromise between the explicit method and the matrix exponential method.
+
+The explicit method is cheap but conditionally stable and potentially dissipative. The matrix exponential is accurate for the semi-discrete system but expensive. Crank--Nicolson lies between them: it is stable, second order in time and practical for repeated time stepping.
+
+For the damped wave problem, Crank--Nicolson should reproduce the physical damping without adding excessive artificial damping. Therefore, agreement between Crank--Nicolson and the matrix exponential animation is a strong validation of the implementation.
+
+---
+
+## 12. Conservative formulation
+
+Hyperbolic problems are often written in conservative form,
+
+$$
+\frac{\partial \mathbf{U}}{\partial t}
++
+\frac{\partial \mathbf{F}(\mathbf{U})}{\partial x}
+=
+\mathbf{S}(\mathbf{U}).
+$$
+
+This form emphasizes fluxes through cell interfaces. Instead of only approximating derivatives at grid points, a finite-volume method tracks how much information enters and leaves each cell.
+
+To write the wave equation in a form suitable for flux methods, introduce
+
+$$
+w=\frac{\partial u}{\partial x}.
+$$
+
+A state vector can then be defined as
+
+$$
+\mathbf{U}
+=
+\begin{pmatrix}
+u\\
+v\\
+w
+\end{pmatrix},
+$$
+
+where $v=u_t$ and $w=u_x$.
+
+A representative flux for the wave part is
+
+$$
+\mathbf{F}(\mathbf{U})
+=
+\begin{pmatrix}
+0\\
+-c^2 w\\
+-v
+\end{pmatrix}.
+$$
+
+The remaining damping and reaction terms are treated as sources. This formulation allows the use of numerical fluxes and approximate Riemann solvers.
+
+---
+
+## 13. Characteristic speeds
+
+The Jacobian of the flux is
+
+$$
+\mathbf{J}
+=
+\frac{\partial \mathbf{F}}{\partial \mathbf{U}}.
+$$
+
+For the wave system, the characteristic speeds are
+
+$$
+\lambda_1=0,
+\qquad
+\lambda_2=c,
+\qquad
+\lambda_3=-c.
+$$
+
+These speeds describe how information propagates. Two modes travel left and right with speeds $\pm c$, while one mode is stationary in this variable representation.
+
+This characteristic structure is the basis of upwind methods. A good flux method should respect the fact that information enters an interface from specific directions.
+
+---
+
+## 14. HLL/HLLE approximate Riemann solver
+
+At each cell interface, a finite-volume method sees a left state and a right state:
+
+$$
+\mathbf{U}_L,
+\qquad
+\mathbf{U}_R.
+$$
+
+The exact solution of the resulting Riemann problem may involve several waves. The HLL/HLLE solver replaces the full wave structure by a simpler model using only the fastest left-going and right-going signal speeds.
+
+Let
+
+$$
+S_L=-c,
+\qquad
+S_R=c.
+$$
+
+The HLL flux is
+
+$$
+\mathbf{F}_{HLL}
+=
+\frac{
+S_R\mathbf{F}_L
+-
+S_L\mathbf{F}_R
++
+S_LS_R
+(\mathbf{U}_R-\mathbf{U}_L)
+}{
+S_R-S_L
+}.
+$$
+
+If all waves move to the right, the flux should be determined by the left state. If all waves move to the left, the flux should be determined by the right state. If waves move in both directions, the HLL formula constructs an intermediate flux.
+
+The stabilizing term
+
+$$
+S_LS_R(\mathbf{U}_R-\mathbf{U}_L)
+$$
+
+introduces numerical viscosity. This is a key feature of the method.
+
+---
+
+## 15. Numerical viscosity
+
+Numerical viscosity is artificial smoothing introduced by a numerical method. It is not the same as physical damping. Physical damping is present in the PDE. Numerical viscosity is present because of the flux approximation.
+
+In HLL/HLLE, numerical viscosity is useful because it suppresses spurious oscillations and makes the method robust for hyperbolic systems. This is especially important in nonlinear conservation laws, where discontinuities or shocks may form.
+
+However, in a smooth linear damped wave problem, the same viscosity may make the solution look more diffusive. The HLL animation may show a smoother wave and stronger amplitude decay than the matrix exponential or Crank--Nicolson animations.
+
+This is expected. HLL/HLLE is not necessarily the least dissipative method for a smooth standing wave. Its strength is robustness and conservative structure.
+
+---
+
+## 16. Comparison of the four methods
+
+The explicit finite-difference method is direct, transparent and cheap. It is the easiest method to connect to the original PDE. Its main limitations are conditional stability and possible artificial damping.
+
+The matrix exponential method is the most faithful time integrator for the spatially discretized linear system. It is an excellent reference, but it may be computationally expensive.
+
+Crank--Nicolson is a practical compromise. It approximates the matrix exponential well, is second order in time and is usually much less dissipative than a simple explicit method.
+
+HLL/HLLE is a conservative flux method. It is designed for hyperbolic systems and approximate Riemann problems. It introduces numerical viscosity, which makes it robust but can make smooth waves appear more damped.
+
+The value of the project is that these methods are compared on the same physical problem. This makes it possible to see how numerical choices affect the observed solution.
+
+---
+
+## 17. Summary
+
+This practice connects several important ideas in computational physics:
+
+- damped hyperbolic wave equations,
+- physical damping versus numerical damping,
+- finite-difference discretization,
+- CFL stability,
+- first-order system reformulation,
+- matrix exponential propagation,
+- Crank--Nicolson integration,
+- conservative finite-volume methods,
+- HLL/HLLE fluxes,
+- characteristic speeds,
+- Dirichlet and Neumann boundary conditions.
+
+The central lesson is that numerical methods are not neutral. They introduce their own stability properties, damping behaviour and computational cost. Understanding these effects is as important as writing code that runs.

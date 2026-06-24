@@ -1,166 +1,146 @@
-# Numerical Method and Implementation Workflow
+# Numerical Method and Implementation Notes
 
-This document explains how the damped wave / telegraph equation workflows are implemented in this repository and how each implementation stage maps to the theoretical model.
+This document explains how the numerical methods in the repository are organized at the implementation level. The focus is not on re-deriving all the theory, but on connecting the mathematical formulation with the structure of the Python code.
 
-The main execution script is `intentofinalpractica6.py`. The file in `src/damped_wave_telegraph_methods.py` is preserved as uploaded and is not modified by this documentation rebuild.
+## 1. Computational workflow
 
-## 1. Spatial grid
+The project follows the same general workflow for all methods:
 
-The script defines a one-dimensional interval $[x_{\min},x_{\max}]$ and uses a uniform mesh with `Nx` points:
+1. define the spatial grid,
+2. define the time step and final time,
+3. initialize the field $u(x,0)$,
+4. initialize the velocity $u_t(x,0)$,
+5. impose boundary conditions,
+6. evolve the solution with a chosen method,
+7. store frames for visualization,
+8. compare methods through GIF animations.
 
-$$
-x_j=x_{\min}+j\Delta x,\qquad \Delta x=\frac{x_{\max}-x_{\min}}{N_x-1}.
-$$
+The methods differ in how the time update is performed, but they represent the same underlying physical equation.
 
-In code, this is represented by `x = np.linspace(x_min, x_max, Nx)` and reused by all methods for consistent comparisons.
+## 2. Explicit finite-difference method
 
-## 2. Time grid
-
-The simulation horizon is set by `t_max` with `Nt` temporal points and
-
-$$
-\Delta t=\frac{t_{\max}}{N_t-1}.
-$$
-
-All four numerical strategies use the same grid parameters, enabling method-to-method interpretation under matched physical and numerical settings.
-
-## 3. Initialization of $u$ and $u_t$
-
-The displacement is initialized with a sinusoidal mode through `initial_u(n)`, equivalent to
+The explicit method stores the solution at two previous time levels and computes the next one directly. The field is represented as an array of grid values,
 
 $$
-u(x,0)=\sin(n\pi x).
+u_j^n \approx u(x_j,t^n).
 $$
 
-A startup state at one timestep is then generated in `u_at_dt(u0)`, using a second-order expansion based on the PDE at rest-like initial velocity. This provides the two temporal levels required by the explicit second-order recurrence.
+The method uses finite differences for the second time derivative, second spatial derivative and damping term. At each step, the code updates the interior points and then applies the selected boundary conditions.
 
-## 4. Explicit finite-difference update
-
-Functions:
-
-- `explicit_method_dirichlet(...)`
-- `explicit_method_neumann(...)`
-
-The update is a three-level recurrence over interior points using the centered spatial Laplacian. The dimensionless coefficient
+This method is simple and fast because it does not require matrix factorization or solving a linear system. Its main restriction is the CFL condition,
 
 $$
-r=\left(\frac{c\Delta t}{\Delta x}\right)^2
+\frac{c\Delta t}{\Delta x}\leq 1.
 $$
 
-controls wave transport strength in the recurrence.
+## 3. Matrix exponential method
 
-Boundary handling differs by function:
-
-- Dirichlet: endpoint values are fixed to zero each step.
-- Neumann setup: right boundary is imposed by copying the adjacent interior value (zero-gradient approximation).
-
-## 5. Construction of the first-order matrix system
-
-Functions:
-
-- `build_system_matrix_dirichlet(...)`
-- `build_system_matrix_neumann(...)`
-
-The second-order PDE is reformulated with state $\mathbf{W}=(\mathbf{u},\mathbf{v})^T$, producing
+The matrix exponential method rewrites the PDE as a first-order system using
 
 $$
-\frac{d\mathbf{W}}{dt}=\mathbf{A}\mathbf{W}.
+v=\frac{\partial u}{\partial t}.
 $$
 
-The code builds block matrices with discrete Laplacian terms, damping block $-2(\kappa/\rho)\mathbf{I}$, and boundary-specific row constraints.
-
-## 6. Matrix exponential workflow
-
-Function:
-
-- `solve_matrix_exponential(...)`
-
-For each boundary type, the script constructs $\mathbf{A}$ and computes
+The numerical state is
 
 $$
-\mathbf{M}=e^{\mathbf{A}\Delta t}
+\mathbf{W}=(u_0,\ldots,u_{N-1},v_0,\ldots,v_{N-1})^T.
 $$
 
-via `scipy.linalg.expm`. The state vector is then advanced by repeated matrix multiplication. This acts as a high-fidelity reference for the same semi-discrete operator.
-
-## 7. Crank–Nicolson workflow
-
-Functions:
-
-- `solve_crank_nicolson_dirichlet(...)`
-- `solve_crank_nicolson_neumann(...)`
-
-The code forms
+The code constructs a matrix $\mathbf{A}$ such that
 
 $$
-\mathbf{B}=\mathbf{I}-\frac{\Delta t}{2}\mathbf{A},\qquad
-\mathbf{C}=\mathbf{I}+\frac{\Delta t}{2}\mathbf{A},
+\frac{d\mathbf{W}}{dt}
+=
+\mathbf{A}\mathbf{W}.
 $$
 
-and solves
+The update is then
 
 $$
-\mathbf{B}\mathbf{W}^{n+1}=\mathbf{C}\mathbf{W}^{n}
+\mathbf{W}^{n+1}
+=
+e^{\mathbf{A}\Delta t}
+\mathbf{W}^{n}.
 $$
 
-at each step using LU factorization (`lu_factor` / `lu_solve`). Boundary rows are explicitly fixed in the linear system setup.
+This method is used as a high-quality reference for the time evolution of the semi-discrete system.
 
-## 8. Conservative HLL/HLLE workflow
+## 4. Crank--Nicolson method
 
-Functions:
+Crank--Nicolson uses the same first-order matrix system, but advances the solution with
 
-- `compute_eigenvalues(...)`
-- `compute_hll_flux(...)`
-- `solve_hll_dirichlet(...)`
-- `solve_hll_neumann(...)`
+$$
+\left(
+\mathbf{I}
+-
+\frac{\Delta t}{2}\mathbf{A}
+\right)
+\mathbf{W}^{n+1}
+=
+\left(
+\mathbf{I}
++
+\frac{\Delta t}{2}\mathbf{A}
+\right)
+\mathbf{W}^{n}.
+$$
 
-This branch uses the conservative-like state $\mathbf{U}=(u,v,w)^T$ with $w\approx u_x$. At each step:
+The implementation builds the left-hand and right-hand matrices once and then solves the linear system at each time step.
 
-1. Reconstruct $w$ from spatial differences.
-2. Compute interface fluxes with HLL speed bounds.
-3. Update interior cells with flux divergence plus source terms.
-4. Apply boundary conditions on the updated state.
+This method is more expensive than the explicit update but gives better stability and usually much better agreement with the matrix exponential solution.
 
-The implementation uses characteristic speeds tied to $\pm c$ and includes damping/source effects in the source vector.
+## 5. HLL/HLLE method
 
-## 9. Dirichlet boundary implementation
+The HLL/HLLE implementation uses a conservative representation of the wave problem. The state vector includes variables such as the field, its time derivative and its spatial derivative.
 
-Dirichlet behavior is enforced by fixed displacement at constrained ends:
+At each cell interface, the method constructs left and right states and computes an approximate HLL flux,
 
-- Explicit method sets endpoint values directly to zero.
-- Matrix-system methods impose boundary equations by replacing corresponding rows.
-- HLL branch sets edge state components associated with fixed displacement/velocity to zero.
+$$
+\mathbf{F}_{HLL}
+=
+\frac{
+S_R\mathbf{F}_L
+-
+S_L\mathbf{F}_R
++
+S_LS_R
+(\mathbf{U}_R-\mathbf{U}_L)
+}{
+S_R-S_L
+}.
+$$
 
-This corresponds to fixed-end conditions in the project comparisons.
+The solution is then updated by flux differences across cell interfaces. This is structurally different from the explicit finite-difference and matrix-based methods.
 
-## 10. Neumann boundary implementation
+## 6. Boundary conditions
 
-The Neumann comparison uses a zero-gradient/free-end treatment at the right boundary in the implementation:
+The code compares Dirichlet and Neumann boundary conditions.
 
-- Explicit method uses endpoint copying from the neighboring interior value.
-- Matrix-system Neumann builder modifies the right-boundary Laplacian row with a ghost-point style closure.
-- HLL branch sets right-edge gradient accordingly and copies right boundary state from interior in the update step.
+For Dirichlet boundaries, the field is fixed at the endpoints:
 
-The left boundary remains fixed in the script’s mixed setup for the Neumann experiments.
+$$
+u(0,t)=0,
+\qquad
+u(L,t)=0.
+$$
 
-## 11. GIF generation
+For Neumann boundaries, the derivative is constrained:
 
-After computing solution arrays, the script builds six Matplotlib animations (`FuncAnimation`) and writes GIF files using the Pillow writer. Frame skipping is controlled by `SKIP_FRAMES` to reduce runtime and file size.
+$$
+\frac{\partial u}{\partial x}=0.
+$$
 
-The six generated outputs correspond to:
+The boundary conditions must be applied consistently in each method. In explicit methods, this usually means modifying endpoint values after each update. In matrix methods, it means constructing the operator with the correct boundary rows. In flux methods, it affects interface treatment near the edges.
 
-1. Explicit (Dirichlet vs Neumann)
-2. Matrix exponential (Dirichlet vs Neumann)
-3. Crank–Nicolson (Dirichlet vs Neumann)
-4. HLL (Dirichlet vs Neumann)
-5. Multi-method comparison under Dirichlet
-6. Multi-method comparison under Neumann
+## 7. GIF generation
 
-## 12. Mapping from code structure to theory
+The code produces GIF animations for:
+- explicit finite-difference evolution,
+- matrix exponential evolution,
+- Crank--Nicolson evolution,
+- HLL/HLLE evolution,
+- Dirichlet method comparison,
+- Neumann method comparison.
 
-- **Second-order PDE viewpoint**: explicit recurrence directly advances $u$ from prior time levels.
-- **First-order linear-system viewpoint**: matrix exponential and Crank–Nicolson operate on $\mathbf{W}=(u,v)^T$.
-- **Conservative flux viewpoint**: HLL/HLLE branch advances $\mathbf{U}=(u,v,w)^T$ by interface fluxes and source terms.
-- **Boundary physics viewpoint**: Dirichlet and Neumann closures are implemented separately for every numerical philosophy.
-
-This separation makes the repository a method-comparison study of the same physical equation under consistent parameters and shared visualization outputs.
+These GIFs are not only visual outputs. They are the main diagnostic figures used to compare the qualitative behaviour of the four numerical approaches.

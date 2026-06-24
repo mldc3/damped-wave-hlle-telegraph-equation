@@ -1,17 +1,36 @@
 # Sources and Notes
 
-This repository is based on **Practice 6** from computational physics / modelling coursework in the Physics degree at the **University of Alicante**.
+This repository is based on Practice 6 from computational physics / modelling coursework in the Physics degree at the University of Alicante.
 
-The technical scope includes:
+The original materials included:
+- the Python implementation,
+- the original practice report,
+- GIF animations comparing the numerical methods.
 
-- the damped one-dimensional wave / telegraph equation,
-- finite-difference spatial and temporal discretization,
-- CFL stability considerations for explicit schemes,
-- reformulation into first-order systems,
+The repository is a cleaned portfolio version of the original coursework project. The numerical logic and physical parameters of the original implementation have been preserved.
+
+The theoretical and numerical topics involved include:
+
+- damped one-dimensional wave equation,
+- telegraph-type equation,
+- hyperbolic partial differential equations,
+- physical damping,
+- numerical damping,
+- finite-difference discretization,
+- CFL stability condition,
+- first-order system reformulation,
 - matrix exponential time evolution,
-- Crank–Nicolson implicit time integration,
-- conservative formulations with auxiliary variables,
-- HLL/HLLE approximate Riemann solvers,
-- Dirichlet and Neumann boundary-condition analysis.
+- Crank--Nicolson time integration,
+- conservative finite-volume formulation,
+- characteristic speeds,
+- HLL/HLLE approximate Riemann solver,
+- numerical viscosity,
+- Dirichlet boundary conditions,
+- Neumann boundary conditions,
+- animated scientific visualization.
 
-This repository is a cleaned portfolio version of the project. Documentation has been rebuilt for clarity, while the numerical logic of the original code has been preserved.
+Author:
+
+María Lourdes Domínguez Cacho  
+Final-semester Physics student, University of Alicante  
+GitHub: mldc3
